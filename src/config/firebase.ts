@@ -3,19 +3,7 @@ import { initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore } from 'firebase/f
 import { getAuth, connectAuthEmulator, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { initializeAppCheck, ReCaptchaV3Provider, AppCheck } from 'firebase/app-check';
 
-interface ImportMetaEnv {
-  readonly VITE_FIREBASE_API_KEY: string;
-  readonly VITE_FIREBASE_AUTH_DOMAIN: string;
-  readonly VITE_FIREBASE_PROJECT_ID: string;
-  readonly VITE_FIREBASE_STORAGE_BUCKET: string;
-  readonly VITE_FIREBASE_MESSAGING_SENDER_ID: string;
-  readonly VITE_FIREBASE_APP_ID: string;
-  readonly VITE_FIREBASE_MEASUREMENT_ID: string;
-  readonly VITE_RECAPTCHA_SITE_KEY: string;
-  readonly VITE_USE_FIREBASE_EMULATOR: string;
-}
-
-const env = import.meta.env as unknown as ImportMetaEnv;
+const env = import.meta.env;
 
 const validateEnvironment = (): void => {
   const requiredKeys = ['VITE_FIREBASE_API_KEY', 'VITE_FIREBASE_PROJECT_ID', 'VITE_RECAPTCHA_SITE_KEY'];
@@ -44,7 +32,7 @@ const auth: Auth = getAuth(app);
 setPersistence(auth, browserLocalPersistence);
 
 const appCheck: AppCheck = initializeAppCheck(app, {
-  provider: new ReCaptchaV3Provider(env.VITE_RECAPTCHA_SITE_KEY),
+  provider: new ReCaptchaV3Provider(env.VITE_RECAPTCHA_SITE_KEY as string),
   isTokenAutoRefreshEnabled: true
 });
 
