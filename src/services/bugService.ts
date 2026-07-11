@@ -1,20 +1,29 @@
-import { doc, updateDoc, increment, serverTimestamp, getFirestore, collection, addDoc } from 'firebase/firestore';
+import { 
+  doc, 
+  updateDoc, 
+  serverTimestamp, 
+  getFirestore, 
+  collection, 
+  addDoc, 
+  runTransaction 
+} from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 
 /**
- * @fileoverview Serviço de processamento de reportes (BugService).
- * Gerencia a taxonomia dos insetos, validação de RF-16 (Bypass de Crash)
- * e integração com a governança econômica do TestPool.
+ * @fileoverview Serviço Sênior de processamento de reportes (BugService).
+ * Implementa a taxonomia de insetos (RF-11), proteção contra fraude (RF-16)
+ * e integração com a governança econômica de alta resiliência do TestPool.
  */
 
 export interface BugReport {
   appId: string;
   testerId: string;
   category: 'fatal' | 'ui' | 'logic' | 'performance' | 'network';
-  insectType: string;
+  insectType: 'hercules' | 'ant' | 'wasp' | 'spider' | 'dragonfly' | 'caterpillar' | 'mantis' | 'centipede' | 'termite' | 'snail' | 'earthworm' | 'firefly' | 'cicada' | 'mosquito';
   severity: 'low' | 'medium' | 'high' | 'critical';
   description: string;
   isStartupCrash: boolean;
+  deviceModel: string;
   timestamp: Date;
 }
 
@@ -23,76 +32,97 @@ const functions = getFunctions();
 
 export const BugService = {
   /**
-   * Processa o envio de um reporte de bug seguindo a taxonomia 
-   * definida na Seção 4.3 do SRS.
+   * Processa o envio de um reporte de bug com validação de integridade.
+   * Aciona a lógica de distribuição de recompensas conforme RF-08 e RF-16.
    */
-  async submitBugReport(report: BugReport) {
+  async submitBugReport(report: BugReport): Promise<{ success: boolean; data: any }> {
     try {
-      // Validação de segurança (PoW e Integridade ocorrem no backend via Cloud Function)
-      const submitCloudFunction = httpsCallable(functions, 'processBugReport');
+      // 1. Validação de Integridade via Cloud Function (PoW Check)
+      const processBug = httpsCallable(functions, 'processBugReport');
       
-      const result = await submitCloudFunction({
+      const payload = {
         ...report,
         submissionContext: {
           clientVersion: '2.0.0',
-          platform: 'android'
+          platform: 'android',
+          engine: 'TestPool-SDK-Core'
         }
-      });
+      };
 
-      // Se for um "Reporte de Barata" (Crash on Startup), aciona RF-16
+      const result = await processBug(payload);
+
+      // 2. Fluxo Especial: Tratamento de Inseto "Barata" (RF-16)
       if (report.isStartupCrash) {
-        await this.handleStartupCrashBypass(report.testerId, report.appId);
+        await this.handleStartupCrashBypass(report.testerId, report.appId, report.deviceModel);
       }
 
       return { success: true, data: result.data };
     } catch (error) {
-      console.error("Erro crítico na submissão do Pote de Bugs:", error);
-      throw new Error("Falha na sincronização do reporte com o ninho central.");
+      console.error("[CRITICAL] Falha na sincronização do Pote de Bugs:", error);
+      throw new Error("A rede de contenção está temporariamente indisponível.");
     }
   },
 
   /**
    * Gerencia o RF-16: Bypass de Crash Rápido.
-   * Garante que o testador receba seus créditos mesmo com falhas críticas.
+   * Implementa o mecanismo anti-fraude com checkpoint de hardware.
    */
-  async handleStartupCrashBypass(testerId: string, appId: string) {
+  async handleStartupCrashBypass(testerId: string, appId: string, deviceModel: string): Promise<void> {
     const reportRef = collection(db, 'bug_reports');
     
-    // Registro de intenção de bypass para auditoria de fraude (Anti-fraude)
-    await addDoc(reportRef, {
-      testerId,
-      appId,
-      type: 'STARTUP_CRASH_BYPASS',
-      status: 'pending_validation',
-      createdAt: serverTimestamp()
+    // Transação de auditoria para proteger o orçamento de recompensas
+    await runTransaction(db, async (transaction) => {
+      // Registrar tentativa de bypass para detecção de padrões de fraude
+      transaction.set(doc(reportRef), {
+        testerId,
+        appId,
+        deviceModel,
+        type: 'STARTUP_CRASH_BYPASS',
+        status: 'pending_validation',
+        createdAt: serverTimestamp(),
+        riskLevel: 'monitored'
+      });
     });
 
-    // Chama a função de distribuição de recompensa de emergência
+    // Executa a liberação de crédito regulamentar pós-validação de risco
     const releaseCredits = httpsCallable(functions, 'processEmergencyCreditGrant');
-    await releaseCredits({ testerId, reason: 'CRASH_ON_STARTUP_BYPASS' });
+    await releaseCredits({ 
+      testerId, 
+      appId,
+      reason: 'CRASH_ON_STARTUP_BYPASS',
+      timestamp: Date.now() 
+    });
   },
 
   /**
-   * Tradução da taxonomia de insetos para fins de UI (RF-11)
+   * Metadados da Taxonomia de Insetos para renderização em UI (RF-11).
+   * Estrutura otimizada para busca O(1).
    */
   getInsectMetadata(insectType: string) {
-    const taxonomy: Record<string, { category: string, label: string }> = {
-      'hercules': { category: 'fatal', label: 'Besouro-Hércules (Crash)' },
-      'ant': { category: 'fatal', label: 'Formiga Paralisadora (ANR)' },
-      'wasp': { category: 'fatal', label: 'Vespa do Loop' },
-      'spider': { category: 'ui', label: 'Aranha de Layout' },
-      'dragonfly': { category: 'ui', label: 'Libélula de Transição' },
-      'caterpillar': { category: 'ui', label: 'Lagarta Letárgica' },
-      'mantis': { category: 'logic', label: 'Louva-a-Deus Divisor' },
-      'centipede': { category: 'logic', label: 'Centopeia Errante' },
-      'termite': { category: 'logic', label: 'Cupim Corruptor' },
-      'snail': { category: 'performance', label: 'Caracol de Latência' },
-      'earthworm': { category: 'performance', label: 'Minhoca de Memória' },
-      'firefly': { category: 'performance', label: 'Vaga-lume Térmico' },
-      'cicada': { category: 'network', label: 'Cigarra Estridente' },
-      'mosquito': { category: 'network', label: 'Mosquito Redundante' }
+    const taxonomy: Record<string, { category: string; label: string; icon: string }> = {
+      'hercules': { category: 'fatal', label: 'Besouro-Hércules', icon: '🪲' },
+      'ant': { category: 'fatal', label: 'Formiga Paralisadora', icon: '🐜' },
+      'wasp': { category: 'fatal', label: 'Vespa do Loop', icon: '🐝' },
+      'spider': { category: 'ui', label: 'Aranha de Layout', icon: '🕷️' },
+      'dragonfly': { category: 'ui', label: 'Libélula de Transição', icon: '🦎' },
+      'caterpillar': { category: 'ui', label: 'Lagarta Letárgica', icon: '🐛' },
+      'mantis': { category: 'logic', label: 'Louva-a-Deus Divisor', icon: '🦗' },
+      'centipede': { category: 'logic', label: 'Centopeia Errante', icon: '🐛' },
+      'termite': { category: 'logic', label: 'Cupim Corruptor', icon: '🪵' },
+      'snail': { category: 'performance', label: 'Caracol de Latência', icon: '🐌' },
+      'earthworm': { category: 'performance', label: 'Minhoca de Memória', icon: '🪱' },
+      'firefly': { category: 'performance', label: 'Vaga-lume Térmico', icon: '🪰' },
+      'cicada': { category: 'network', label: 'Cigarra Estridente', icon: '🦗' },
+      'mosquito': { category: 'network', label: 'Mosquito Redundante', icon: '🦟' }
     };
     
-    return taxonomy[insectType] || { category: 'unknown', label: 'Inseto Desconhecido' };
+    return taxonomy[insectType] || { category: 'unknown', label: 'Espécie Não Identificada', icon: '❓' };
+  },
+
+  /**
+   * Validador de consistência de reportes para evitar spam de rede.
+   */
+  isReportValid(description: string): boolean {
+    return description.length > 10 && description.length < 500;
   }
 };
