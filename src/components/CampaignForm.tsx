@@ -10,7 +10,9 @@ import {
   ShieldCheck,
   Info,
   Globe,
-  Database
+  Database,
+  Terminal,
+  Layers
 } from 'lucide-react';
 
 /**
@@ -27,6 +29,7 @@ interface FormData {
   versionCode: string;
   language: string;
   agreement: boolean;
+  notes: string;
 }
 
 const CampaignForm: React.FC = () => {
@@ -37,7 +40,8 @@ const CampaignForm: React.FC = () => {
     supportLink: '',
     versionCode: '',
     language: 'pt-BR',
-    agreement: false
+    agreement: false,
+    notes: ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -55,7 +59,7 @@ const CampaignForm: React.FC = () => {
       console.log('Payload de conformidade enviado ao Firestore:', formData);
       setLoading(false);
       alert("Campanha submetida com sucesso ao Protocolo Prudência.");
-    }, 1500);
+    }, 2000);
   };
 
   return (
@@ -138,7 +142,7 @@ const CampaignForm: React.FC = () => {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <AlertCircle size={14} /> Current VersionCode
+                  <Terminal size={14} /> Current VersionCode
                 </label>
                 <input
                   type="number"
@@ -182,6 +186,18 @@ const CampaignForm: React.FC = () => {
                 />
               </div>
             </div>
+            
+            <div className="space-y-2">
+              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                <Layers size={14} /> Observações Técnicas (Opcional)
+              </label>
+              <textarea
+                className="w-full h-24 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
+                placeholder="Detalhes adicionais para os testadores..."
+                value={formData.notes}
+                onChange={(e) => setFormData({...formData, notes: e.target.value})}
+              />
+            </div>
           </div>
 
           {/* Termos de conformidade */}
@@ -195,7 +211,7 @@ const CampaignForm: React.FC = () => {
             <p className="text-slate-400 text-xs leading-relaxed">
               Ao ativar esta campanha, declaro estar ciente dos termos de reciprocidade do Protocolo Prudência. 
               Autorizo a telemetria de presença via SDK para garantir a conformidade dos 40 slots de testadores ativos 
-              por 14 dias. A falha no cumprimento resultará em suspensão temporária.
+              por 14 dias. A falha no cumprimento resultará em suspensão temporária do acesso à vitrine.
             </p>
           </div>
 
