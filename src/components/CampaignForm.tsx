@@ -14,7 +14,7 @@ import {
   Terminal,
   Layers,
   CheckCircle2,
-  XCircle
+  AlertTriangle
 } from 'lucide-react';
 
 /**
@@ -55,27 +55,29 @@ const CampaignForm: React.FC = () => {
     if (!formData.agreement) return;
     
     setLoading(true);
-    // Simulação de transação de conformidade com o Firestore/Cloud Functions
+    // Simulação de persistência em Firestore com validação de conformidade
     setTimeout(() => {
       setLoading(false);
       setStatus('success');
-    }, 2000);
+    }, 2200);
   };
 
   if (status === 'success') {
     return (
-      <div className="min-h-screen bg-slate-950 p-6 flex flex-col items-center justify-center">
-        <div className="max-w-md w-full bg-slate-900 border border-emerald-500/30 rounded-3xl p-8 text-center space-y-6">
-          <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
-            <CheckCircle2 className="text-emerald-500 w-10 h-10" />
+      <div className="min-h-screen bg-slate-950 p-6 flex flex-col items-center justify-center animate-in fade-in duration-500">
+        <div className="max-w-md w-full bg-slate-900 border border-emerald-500/30 rounded-3xl p-8 text-center space-y-6 shadow-2xl">
+          <div className="w-24 h-24 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
+            <CheckCircle2 className="text-emerald-400 w-12 h-12" />
           </div>
-          <h2 className="text-2xl font-black text-white">OPERAÇÃO REGISTRADA</h2>
-          <p className="text-slate-400">O protocolo de contenção foi ativado. Sua campanha está na fila de sincronização dos 40 slots ativos.</p>
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-white tracking-tight">PROTOCOLO ATIVO</h2>
+            <p className="text-slate-400 text-sm">Sua campanha foi alocada no pool de dedetização. O ecossistema está monitorando a integridade dos 40 slots.</p>
+          </div>
           <button 
             onClick={() => window.location.reload()}
-            className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all"
+            className="w-full h-14 bg-emerald-600 hover:bg-emerald-500 text-slate-950 rounded-xl font-black transition-all active:scale-95"
           >
-            RETORNAR AO PAINEL
+            RETORNAR AO DASHBOARD
           </button>
         </div>
       </div>
@@ -92,29 +94,29 @@ const CampaignForm: React.FC = () => {
               <Rocket className="text-emerald-400 w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">Configurar Campanha</h1>
-              <p className="text-slate-400 text-sm italic">Definição de parâmetros para o ecossistema de testes</p>
+              <h1 className="text-2xl font-bold text-white tracking-tight">Cadastro de Operação</h1>
+              <p className="text-slate-400 text-xs uppercase tracking-widest font-bold mt-1">Configuração de Campanha (RF-01)</p>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="space-y-6">
+          <section className="space-y-6">
             <div className="flex items-center gap-2 text-emerald-500 mb-2">
               <Database size={16} />
-              <h2 className="text-sm font-bold uppercase tracking-widest">Identificação do Ativo</h2>
+              <h2 className="text-xs font-black uppercase tracking-widest">Identificação do Ativo</h2>
             </div>
             
             <div className="grid grid-cols-1 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <Package size={14} /> Nome Comercial do Aplicativo
+                  <Package size={14} /> Nome Comercial
                 </label>
                 <input
                   type="text"
                   required
                   className="w-full h-14 bg-slate-950 border border-slate-700 rounded-xl px-4 text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
-                  placeholder="Ex: Prudential Suite Core"
+                  placeholder="Ex: Prudential App Suite"
                   value={formData.appName}
                   onChange={(e) => setFormData({...formData, appName: e.target.value})}
                 />
@@ -128,18 +130,18 @@ const CampaignForm: React.FC = () => {
                   type="text"
                   required
                   className="w-full h-14 bg-slate-950 border border-slate-700 rounded-xl px-4 text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none font-mono text-sm"
-                  placeholder="com.empresa.projeto.prudence"
+                  placeholder="com.projeto.prudence.test"
                   value={formData.packageName}
                   onChange={(e) => setFormData({...formData, packageName: e.target.value})}
                 />
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="space-y-6 border-t border-slate-800 pt-8">
+          <section className="space-y-6 border-t border-slate-800 pt-8">
             <div className="flex items-center gap-2 text-emerald-500 mb-2">
               <Globe size={16} />
-              <h2 className="text-sm font-bold uppercase tracking-widest">Parâmetros de Operação</h2>
+              <h2 className="text-xs font-black uppercase tracking-widest">Parâmetros de Operação</h2>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -159,13 +161,13 @@ const CampaignForm: React.FC = () => {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <Terminal size={14} /> Current VersionCode
+                  <Terminal size={14} /> Version Code
                 </label>
                 <input
                   type="number"
                   required
                   className="w-full h-14 bg-slate-950 border border-slate-700 rounded-xl px-4 text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
-                  placeholder="Ex: 102"
+                  placeholder="Ex: 120"
                   value={formData.versionCode}
                   onChange={(e) => setFormData({...formData, versionCode: e.target.value})}
                 />
@@ -185,19 +187,18 @@ const CampaignForm: React.FC = () => {
                   <option value="pt-BR">Português (Brasil)</option>
                   <option value="en-US">English (US)</option>
                   <option value="es-ES">Español</option>
-                  <option value="fr-FR">Français</option>
                 </select>
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                  <Info size={14} /> Canal de Suporte (URL)
+                  <Info size={14} /> Suporte Técnico (URL)
                 </label>
                 <input
                   type="url"
                   required
                   className="w-full h-14 bg-slate-950 border border-slate-700 rounded-xl px-4 text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
-                  placeholder="https://t.me/suporte"
+                  placeholder="https://t.me/support"
                   value={formData.supportLink}
                   onChange={(e) => setFormData({...formData, supportLink: e.target.value})}
                 />
@@ -206,16 +207,16 @@ const CampaignForm: React.FC = () => {
             
             <div className="space-y-2">
               <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <Layers size={14} /> Observações Técnicas (Opcional)
+                <Layers size={14} /> Observações Técnicas
               </label>
               <textarea
-                className="w-full h-24 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
-                placeholder="Detalhes adicionais para os testadores..."
+                className="w-full h-24 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none resize-none"
+                placeholder="Ex: App focado em produtividade..."
                 value={formData.notes}
                 onChange={(e) => setFormData({...formData, notes: e.target.value})}
               />
             </div>
-          </div>
+          </section>
 
           <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex items-start gap-4">
             <input 
@@ -224,10 +225,10 @@ const CampaignForm: React.FC = () => {
               checked={formData.agreement}
               onChange={(e) => setFormData({...formData, agreement: e.target.checked})}
             />
-            <p className="text-slate-400 text-xs leading-relaxed">
-              Declaro estar ciente dos termos de reciprocidade do Protocolo Prudência. 
-              Autorizo a telemetria de presença via SDK para blindagem dos 40 slots ativos. 
-              Qualquer tentativa de fraude resultará em penalização imediata de patente.
+            <p className="text-slate-400 text-[11px] leading-relaxed">
+              Declaro estar ciente da regra de ouro: testar para ser testado. Autorizo o monitoramento 
+              de telemetria via SDK para garantia da conformidade nos 40 slots. Fraudes resultam em 
+              suspensão imediata das patentes.
             </p>
           </div>
 
@@ -245,9 +246,9 @@ const CampaignForm: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-8 flex items-center justify-center gap-2 text-emerald-900/60 text-[10px] uppercase tracking-widest font-bold">
+        <div className="mt-8 flex items-center justify-center gap-2 text-emerald-900/60 text-[9px] uppercase tracking-widest font-black">
           <ShieldCheck size={14} />
-          <span>Segurança de Hardware v2.0 - Active</span>
+          <span>ESTRUTURA DE DADOS SEGURA: PRUDÊNCIA v2.0</span>
         </div>
       </div>
     </div>
