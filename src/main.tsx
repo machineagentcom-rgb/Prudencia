@@ -1,10 +1,13 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
+import { createRoot } from 'react-dom/client';
 
 const App = () => <div className="text-white">Prudência - Sistema Iniciado</div>;
 
-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+const container = document.getElementById('root');
+if (container) {
+  createRoot(container).render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+}
