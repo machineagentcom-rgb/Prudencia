@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 
 const App = () => (
   <React.StrictMode>
-    <div>Prudência - Sistema Iniciado</div>
+    <div className="text-white">Prudência - Sistema Iniciado</div>
   </React.StrictMode>
 );
 

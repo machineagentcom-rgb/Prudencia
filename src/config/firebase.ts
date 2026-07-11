@@ -1,9 +1,5 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { 
-  initializeFirestore, 
-  CACHE_SIZE_UNLIMITED, 
-  Firestore
-} from 'firebase/firestore';
+import { initializeFirestore, CACHE_SIZE_UNLIMITED, Firestore } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { initializeAppCheck, ReCaptchaV3Provider, AppCheck } from 'firebase/app-check';
 
