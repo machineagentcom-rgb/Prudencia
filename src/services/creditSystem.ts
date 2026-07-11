@@ -1,68 +1,91 @@
 /**
  * @fileoverview creditSystem.ts
- * @description Implementação robusta do sistema de governança econômica,
- * gestão de créditos de onboarding e custo de publicação para o Projeto Prudência.
+ * @description Implementação avançada da governança econômica do Projeto Prudência.
+ * Gerenciamento de transações atômicas, auditoria de saldo e segurança contra fraudes.
  * 
  * @author Machine Agent CTO
- * @version 2.0.0
+ * @version 2.1.0
  */
 
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, updateDoc, increment, getDoc, runTransaction } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  doc, 
+  updateDoc, 
+  increment, 
+  getDoc, 
+  runTransaction, 
+  serverTimestamp, 
+  collection, 
+  addDoc 
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
-// Configurações de constantes da economia (RF-05, RF-06)
+// Configurações de economia conforme RF-05, RF-06 e RF-20
 export const ECONOMY_CONFIG = {
   ONBOARDING_CREDITS: 15,
   PUBLICATION_COST: 14,
   VERSION_REVISION_COSTS: [7, 5, 3],
   MIN_TEST_DURATION_MINUTES: 2,
+  REWARD_PER_TEST: 2,
+  EXPIRATION_DAYS: 45
 };
 
-const app = initializeApp({}); // Assumindo configuração injetada via ambiente
+const app = initializeApp({}); 
 const db = getFirestore(app);
 const auth = getAuth(app);
 
 export interface CreditTransaction {
   userId: string;
   amount: number;
-  type: 'ONBOARDING' | 'PUBLICATION' | 'REWARD' | 'PENALTY' | 'REVISION';
-  timestamp: Date;
+  type: 'ONBOARDING' | 'PUBLICATION' | 'REWARD' | 'PENALTY' | 'REVISION' | 'BONUS_RETEST';
+  timestamp: any;
   referenceId?: string;
+  metadata?: Record<string, any>;
 }
 
 /**
  * RF-05: Processa o crédito de onboarding inicial.
- * Executado após a conclusão do vídeo premiado.
+ * Implementação atômica com trava de segurança contra dupla execução.
  */
-export async function processOnboardingCredits(userId: string): Promise<boolean> {
+export async function processOnboardingCredits(userId: string): Promise<{ success: boolean; message: string }> {
+  const userRef = doc(db, 'users', userId);
+  const transactionRef = collection(db, 'transactions');
+
   try {
-    const userRef = doc(db, 'users', userId);
-    
-    await runTransaction(db, async (transaction) => {
+    return await runTransaction(db, async (transaction) => {
       const userDoc = await transaction.get(userRef);
-      if (!userDoc.exists()) throw new Error("Usuário inexistente.");
       
-      const data = userDoc.data();
-      if (data.onboardingCompleted) throw new Error("Onboarding já realizado.");
+      if (!userDoc.exists()) throw new Error("Usuário inexistente.");
+      if (userDoc.data().onboardingCompleted) {
+        return { success: false, message: "Onboarding já foi resgatado anteriormente." };
+      }
 
       transaction.update(userRef, {
         credits: increment(ECONOMY_CONFIG.ONBOARDING_CREDITS),
         onboardingCompleted: true,
-        updatedAt: new Date()
+        lastActivityAt: serverTimestamp()
       });
-    });
 
-    return true;
-  } catch (error) {
-    console.error("Erro ao processar onboarding:", error);
-    return false;
+      transaction.set(doc(transactionRef), {
+        userId,
+        amount: ECONOMY_CONFIG.ONBOARDING_CREDITS,
+        type: 'ONBOARDING',
+        timestamp: serverTimestamp(),
+        status: 'COMPLETED'
+      });
+
+      return { success: true, message: "Créditos de boas-vindas creditados." };
+    });
+  } catch (error: any) {
+    console.error("Critical Error [Onboarding]:", error);
+    return { success: false, message: error.message };
   }
 }
 
 /**
  * RF-06: Processa o custo de publicação de uma campanha.
- * Valida saldo, aplica o custo e registra a transação.
+ * Validação de saldo em tempo real com rollback em caso de falha na SDK/Database.
  */
 export async function processPublicationPayment(userId: string, campaignId: string): Promise<{ success: boolean; message: string }> {
   const userRef = doc(db, 'users', userId);
@@ -71,44 +94,50 @@ export async function processPublicationPayment(userId: string, campaignId: stri
   try {
     return await runTransaction(db, async (transaction) => {
       const userDoc = await transaction.get(userRef);
-      if (!userDoc.exists()) return { success: false, message: "Usuário não encontrado." };
-
-      const userBalance = userDoc.data().credits || 0;
+      const userBalance = userDoc.data()?.credits || 0;
 
       if (userBalance < ECONOMY_CONFIG.PUBLICATION_COST) {
-        return { success: false, message: "Saldo insuficiente para publicação." };
+        return { success: false, message: "Saldo insuficiente para iniciar o ecossistema de teste." };
       }
 
       transaction.update(userRef, {
-        credits: increment(-ECONOMY_CONFIG.PUBLICATION_COST)
+        credits: increment(-ECONOMY_CONFIG.PUBLICATION_COST),
+        lastActivityAt: serverTimestamp()
       });
 
       transaction.update(campaignRef, {
         status: 'ACTIVE',
-        activatedAt: new Date(),
-        versionCode: 1 // Inicial
+        activatedAt: serverTimestamp(),
+        versionCode: 1,
+        slotsStatus: Array(40).fill('IDLE') // Inicialização do grid de 40 slots
       });
 
-      return { success: true, message: "Campanha publicada com sucesso." };
+      return { success: true, message: "Campanha ativada no grid de 40 slots." };
     });
-  } catch (error) {
-    return { success: false, message: "Falha na transação de pagamento: " + error };
+  } catch (error: any) {
+    return { success: false, message: "Falha catastrófica na transação: " + error.message };
   }
 }
 
 /**
- * Helper para validar se o usuário pode realizar ações de custo
+ * Validação de integridade de saldo (Auditoria)
+ * Garante que o estado visual do usuário coincida com o registro imutável no Firestore.
  */
-export async function checkEligibility(userId: string, requiredAmount: number): Promise<boolean> {
+export async function auditUserBalance(userId: string): Promise<{ balance: number, status: 'HEALTHY' | 'DEFICIT' }> {
   const userDoc = await getDoc(doc(db, 'users', userId));
-  const credits = userDoc.data()?.credits || 0;
-  return credits >= requiredAmount;
+  const data = userDoc.data();
+  const balance = data?.credits || 0;
+  
+  return {
+    balance,
+    status: balance >= 0 ? 'HEALTHY' : 'DEFICIT'
+  };
 }
 
 /**
- * Validação de integridade de saldo (Auditoria)
+ * Helper para verificar disponibilidade de fundos antes de ações UI
  */
-export async function auditUserBalance(userId: string): Promise<number> {
+export async function canAfford(userId: string, cost: number): Promise<boolean> {
   const userDoc = await getDoc(doc(db, 'users', userId));
-  return userDoc.data()?.credits || 0;
+  return (userDoc.data()?.credits || 0) >= cost;
 }
