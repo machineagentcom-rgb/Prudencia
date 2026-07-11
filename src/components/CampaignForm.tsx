@@ -12,13 +12,16 @@ import {
   Globe,
   Database,
   Terminal,
-  Layers
+  Layers,
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 
 /**
  * @file CampaignForm.tsx
  * @description Implementação de alta fidelidade para RF-01 (Cadastro de Aplicativo).
  * Interface com temática industrial "Squad Dedetizador" - Projeto Prudência.
+ * Versão de Produção 2.0.
  */
 
 interface FormData {
@@ -45,42 +48,57 @@ const CampaignForm: React.FC = () => {
   });
 
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.agreement) {
-      alert("É necessário aceitar os termos de conformidade regulatória para prosseguir com a ativação.");
-      return;
-    }
+    if (!formData.agreement) return;
     
     setLoading(true);
-    // Simulação de transação de conformidade
+    // Simulação de transação de conformidade com o Firestore/Cloud Functions
     setTimeout(() => {
-      console.log('Payload de conformidade enviado ao Firestore:', formData);
       setLoading(false);
-      alert("Campanha submetida com sucesso ao Protocolo Prudência.");
+      setStatus('success');
     }, 2000);
   };
+
+  if (status === 'success') {
+    return (
+      <div className="min-h-screen bg-slate-950 p-6 flex flex-col items-center justify-center">
+        <div className="max-w-md w-full bg-slate-900 border border-emerald-500/30 rounded-3xl p-8 text-center space-y-6">
+          <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
+            <CheckCircle2 className="text-emerald-500 w-10 h-10" />
+          </div>
+          <h2 className="text-2xl font-black text-white">OPERAÇÃO REGISTRADA</h2>
+          <p className="text-slate-400">O protocolo de contenção foi ativado. Sua campanha está na fila de sincronização dos 40 slots ativos.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="w-full py-4 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-700 transition-all"
+          >
+            RETORNAR AO PAINEL
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 p-4 md:p-8 flex flex-col items-center font-sans selection:bg-emerald-500/30">
       <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-8 shadow-[0_0_80px_-20px_rgba(16,185,129,0.15)] backdrop-blur-sm">
         
-        {/* Header Temático */}
         <div className="mb-8 border-b border-slate-800 pb-6">
           <div className="flex items-center gap-4">
             <div className="p-4 bg-emerald-500/10 rounded-2xl border border-emerald-500/20 shadow-inner">
               <Rocket className="text-emerald-400 w-8 h-8" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white tracking-tight">Iniciar Operação</h1>
-              <p className="text-slate-400 text-sm italic">Configuração de diretrizes para o Google Play Console</p>
+              <h1 className="text-2xl font-bold text-white tracking-tight">Configurar Campanha</h1>
+              <p className="text-slate-400 text-sm italic">Definição de parâmetros para o ecossistema de testes</p>
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Sessão 1: Identificação */}
           <div className="space-y-6">
             <div className="flex items-center gap-2 text-emerald-500 mb-2">
               <Database size={16} />
@@ -95,7 +113,7 @@ const CampaignForm: React.FC = () => {
                 <input
                   type="text"
                   required
-                  className="w-full h-14 bg-slate-950 border border-slate-700 rounded-xl px-4 text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none"
+                  className="w-full h-14 bg-slate-950 border border-slate-700 rounded-xl px-4 text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none"
                   placeholder="Ex: Prudential Suite Core"
                   value={formData.appName}
                   onChange={(e) => setFormData({...formData, appName: e.target.value})}
@@ -109,7 +127,7 @@ const CampaignForm: React.FC = () => {
                 <input
                   type="text"
                   required
-                  className="w-full h-14 bg-slate-950 border border-slate-700 rounded-xl px-4 text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all outline-none font-mono text-sm"
+                  className="w-full h-14 bg-slate-950 border border-slate-700 rounded-xl px-4 text-white focus:ring-2 focus:ring-emerald-500 transition-all outline-none font-mono text-sm"
                   placeholder="com.empresa.projeto.prudence"
                   value={formData.packageName}
                   onChange={(e) => setFormData({...formData, packageName: e.target.value})}
@@ -118,7 +136,6 @@ const CampaignForm: React.FC = () => {
             </div>
           </div>
 
-          {/* Sessão 2: Parâmetros de Rede */}
           <div className="space-y-6 border-t border-slate-800 pt-8">
             <div className="flex items-center gap-2 text-emerald-500 mb-2">
               <Globe size={16} />
@@ -200,7 +217,6 @@ const CampaignForm: React.FC = () => {
             </div>
           </div>
 
-          {/* Termos de conformidade */}
           <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 flex items-start gap-4">
             <input 
               type="checkbox" 
@@ -209,20 +225,19 @@ const CampaignForm: React.FC = () => {
               onChange={(e) => setFormData({...formData, agreement: e.target.checked})}
             />
             <p className="text-slate-400 text-xs leading-relaxed">
-              Ao ativar esta campanha, declaro estar ciente dos termos de reciprocidade do Protocolo Prudência. 
-              Autorizo a telemetria de presença via SDK para garantir a conformidade dos 40 slots de testadores ativos 
-              por 14 dias. A falha no cumprimento resultará em suspensão temporária do acesso à vitrine.
+              Declaro estar ciente dos termos de reciprocidade do Protocolo Prudência. 
+              Autorizo a telemetria de presença via SDK para blindagem dos 40 slots ativos. 
+              Qualquer tentativa de fraude resultará em penalização imediata de patente.
             </p>
           </div>
 
-          {/* Action Button */}
           <button 
             type="submit"
-            disabled={loading}
+            disabled={loading || !formData.agreement}
             className={`w-full h-16 rounded-xl font-black text-lg uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${
-              loading 
-                ? 'bg-slate-800 text-slate-500 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-slate-950 hover:shadow-[0_0_40px_rgba(16,185,129,0.3)]'
+              loading || !formData.agreement
+                ? 'bg-slate-800 text-slate-600 cursor-not-allowed' 
+                : 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-slate-950 shadow-[0_0_40px_rgba(16,185,129,0.2)]'
             }`}
           >
             {loading ? 'PROCESSANDO...' : 'ATIVAR CAMPANHA'}
@@ -232,7 +247,7 @@ const CampaignForm: React.FC = () => {
 
         <div className="mt-8 flex items-center justify-center gap-2 text-emerald-900/60 text-[10px] uppercase tracking-widest font-bold">
           <ShieldCheck size={14} />
-          <span>Protocolo Prudência v2.0 - Segurança de Hardware Ativa</span>
+          <span>Segurança de Hardware v2.0 - Active</span>
         </div>
       </div>
     </div>
